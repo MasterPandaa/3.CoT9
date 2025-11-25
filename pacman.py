@@ -1,6 +1,7 @@
-import sys
 import math
 import random
+import sys
+
 import pygame
 from pygame import Rect
 
@@ -83,16 +84,18 @@ class Maze:
     def parse(self):
         for y, row in enumerate(self.layout):
             for x, ch in enumerate(row):
-                if ch == '#':
+                if ch == "#":
                     self.walls.add((x, y))
-                elif ch == '.':
+                elif ch == ".":
                     self.pellets.add((x, y))
-                elif ch == 'o':
+                elif ch == "o":
                     self.power.add((x, y))
-                elif ch == 'P':
+                elif ch == "P":
                     self.pacman_spawn = (x, y)
-                    self.pellets.add((x, y))  # tile ini juga berisi pellet agar konsisten
-                elif ch == 'G':
+                    self.pellets.add(
+                        (x, y)
+                    )  # tile ini juga berisi pellet agar konsisten
+                elif ch == "G":
                     self.ghost_spawns.append((x, y))
                     self.pellets.add((x, y))
                 # spasi atau lainnya dianggap jalan kosong
@@ -100,7 +103,7 @@ class Maze:
     def _build_wall_rects(self):
         # Gabungkan dinding menjadi rect per tile (sederhana)
         rects = []
-        for (x, y) in self.walls:
+        for x, y in self.walls:
             rects.append(Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
         return rects
 
@@ -113,16 +116,16 @@ class Maze:
 
     def draw(self, surf, flicker=False):
         # Draw walls
-        for (x, y) in self.walls:
+        for x, y in self.walls:
             r = Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
             pygame.draw.rect(surf, WALL_COLOR, r, border_radius=4)
         # Draw pellets
-        for (x, y) in self.pellets:
+        for x, y in self.pellets:
             cx = int(x * TILE_SIZE + TILE_SIZE / 2)
             cy = int(y * TILE_SIZE + TILE_SIZE / 2)
             pygame.draw.circle(surf, PELLET_COLOR, (cx, cy), 3)
         # Draw power pellets (blink)
-        for (x, y) in self.power:
+        for x, y in self.power:
             cx = int(x * TILE_SIZE + TILE_SIZE / 2)
             cy = int(y * TILE_SIZE + TILE_SIZE / 2)
             radius = 6 if not flicker else 3
@@ -183,7 +186,9 @@ class Entity:
         self.pos.xy = self.maze.wrap_position(self.pos.xy)
 
     def draw(self, surf):
-        pygame.draw.circle(surf, self.color, (int(self.pos.x), int(self.pos.y)), self.radius)
+        pygame.draw.circle(
+            surf, self.color, (int(self.pos.x), int(self.pos.y)), self.radius
+        )
 
 
 class Pacman(Entity):
@@ -222,8 +227,14 @@ class Pacman(Entity):
         # segitiga mulut (hapus area)
         mouth_len = self.radius
         p1 = (x, y)
-        p2 = (x + int(math.cos(start_angle) * mouth_len), y + int(math.sin(start_angle) * mouth_len))
-        p3 = (x + int(math.cos(end_angle) * mouth_len), y + int(math.sin(end_angle) * mouth_len))
+        p2 = (
+            x + int(math.cos(start_angle) * mouth_len),
+            y + int(math.sin(start_angle) * mouth_len),
+        )
+        p3 = (
+            x + int(math.cos(end_angle) * mouth_len),
+            y + int(math.sin(end_angle) * mouth_len),
+        )
         pygame.draw.polygon(surf, SCREEN_BG, [p1, p2, p3])
 
     def _dir_angle(self):
@@ -241,7 +252,7 @@ class Pacman(Entity):
 class Ghost(Entity):
     def __init__(self, maze, grid_pos, color):
         super().__init__(maze, grid_pos, color, GHOST_SPEED_NORMAL)
-        self.state = 'normal'  # normal, frightened, eaten
+        self.state = "normal"  # normal, frightened, eaten
         self.home = grid_pos
 
     def set_state(self, state):
@@ -249,9 +260,9 @@ class Ghost(Entity):
 
     def update(self):
         # Tentukan kecepatan berdasar state
-        if self.state == 'frightened':
+        if self.state == "frightened":
             speed = GHOST_SPEED_FRIGHT
-        elif self.state == 'eaten':
+        elif self.state == "eaten":
             speed = GHOST_SPEED_EATEN
         else:
             speed = self.speed
@@ -270,7 +281,10 @@ class Ghost(Entity):
             nx, ny = gx + dx, gy + dy
             if self.maze.valid_tile((nx, ny)):
                 # hindari berbalik arah jika memungkinkan
-                if self.dir.length_squared() and (dx, dy) == (-int(self.dir.x), -int(self.dir.y)):
+                if self.dir.length_squared() and (dx, dy) == (
+                    -int(self.dir.x),
+                    -int(self.dir.y),
+                ):
                     continue
                 valid.append((dx, dy))
         # Jika semua valid ter-filter habis, izinkan berbalik
@@ -280,7 +294,7 @@ class Ghost(Entity):
                 if self.maze.valid_tile((nx, ny)):
                     valid.append((dx, dy))
         # Pilih berdasarkan state
-        if self.state == 'eaten':
+        if self.state == "eaten":
             # Kejar rumah (minimize distance)
             tx, ty = self.home
             best = None
@@ -294,7 +308,7 @@ class Ghost(Entity):
                 self.dir.update(best)
             else:
                 self.dir.update((0, 0))
-        elif self.state == 'frightened':
+        elif self.state == "frightened":
             # Acak
             if valid:
                 self.dir.update(random.choice(valid))
@@ -310,30 +324,43 @@ class Ghost(Entity):
             # else: lanjut arah sekarang
 
     def draw(self, surf):
-        color = FRIGHTENED_COLOR if self.state == 'frightened' else self.color
+        color = FRIGHTENED_COLOR if self.state == "frightened" else self.color
         pygame.draw.circle(surf, color, (int(self.pos.x), int(self.pos.y)), self.radius)
         # mata sederhana arah gerak
         eye_offset = pygame.Vector2(self.dir.x, self.dir.y) * 3
         for ex in (-3, 3):
-            pygame.draw.circle(surf, (255, 255, 255), (int(self.pos.x + ex/2), int(self.pos.y - 2)), 3)
-            pygame.draw.circle(surf, (0, 0, 0), (int(self.pos.x + ex/2 + eye_offset.x), int(self.pos.y - 2 + eye_offset.y)), 1)
+            pygame.draw.circle(
+                surf,
+                (255, 255, 255),
+                (int(self.pos.x + ex / 2), int(self.pos.y - 2)),
+                3,
+            )
+            pygame.draw.circle(
+                surf,
+                (0, 0, 0),
+                (
+                    int(self.pos.x + ex / 2 + eye_offset.x),
+                    int(self.pos.y - 2 + eye_offset.y),
+                ),
+                1,
+            )
 
 
 class Game:
     def __init__(self):
         pygame.init()
-        pygame.display.set_caption('Pacman - Pygame')
+        pygame.display.set_caption("Pacman - Pygame")
         self.maze = Maze(MAZE_LAYOUT)
         self.width = self.maze.w * TILE_SIZE
         self.height = self.maze.h * TILE_SIZE + 40  # area UI
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont('Arial', 18)
+        self.font = pygame.font.SysFont("Arial", 18)
 
         self.score = 0
         self.lives = 3
         self.level = 1
-        self.state = 'playing'  # playing, dead, gameover
+        self.state = "playing"  # playing, dead, gameover
         self.power_timer = 0.0
 
         self._spawn_entities()
@@ -344,7 +371,7 @@ class Game:
             # fallback: cari tile jalan pertama
             for y, row in enumerate(self.maze.layout):
                 for x, ch in enumerate(row):
-                    if ch != '#':
+                    if ch != "#":
                         pac_spawn = (x, y)
                         break
                 if pac_spawn:
@@ -363,17 +390,17 @@ class Game:
     def reset_after_death(self):
         pygame.time.delay(800)
         self._spawn_entities()
-        self.state = 'playing'
+        self.state = "playing"
         self.power_timer = 0.0
         for g in self.ghosts:
-            g.set_state('normal')
+            g.set_state("normal")
 
     def run(self):
         while True:
             dt = self.clock.tick(FPS) / 1000.0
             self._handle_events()
 
-            if self.state == 'playing':
+            if self.state == "playing":
                 self._update_game(dt)
             self._render()
 
@@ -386,10 +413,13 @@ class Game:
                 if e.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit(0)
-                if self.state == 'gameover' and e.key in (pygame.K_SPACE, pygame.K_RETURN):
+                if self.state == "gameover" and e.key in (
+                    pygame.K_SPACE,
+                    pygame.K_RETURN,
+                ):
                     self.__init__()
         keys = pygame.key.get_pressed()
-        if self.state == 'playing':
+        if self.state == "playing":
             self.pacman.handle_input(keys)
 
     def _eat_at_tile(self):
@@ -404,8 +434,8 @@ class Game:
             self.score += 50
             self.power_timer = POWER_DURATION
             for g in self.ghosts:
-                if g.state != 'eaten':
-                    g.set_state('frightened')
+                if g.state != "eaten":
+                    g.set_state("frightened")
 
     def _update_game(self, dt):
         # Update pemain
@@ -418,39 +448,49 @@ class Game:
             self.power_timer -= dt
             if self.power_timer <= 0:
                 for g in self.ghosts:
-                    if g.state != 'eaten':
-                        g.set_state('normal')
+                    if g.state != "eaten":
+                        g.set_state("normal")
 
         # Update ghost
         for g in self.ghosts:
             g.update()
 
         # Cek collision Pacman-Ghost
-        p_rect = Rect(int(self.pacman.pos.x - self.pacman.radius), int(self.pacman.pos.y - self.pacman.radius), self.pacman.radius * 2, self.pacman.radius * 2)
+        p_rect = Rect(
+            int(self.pacman.pos.x - self.pacman.radius),
+            int(self.pacman.pos.y - self.pacman.radius),
+            self.pacman.radius * 2,
+            self.pacman.radius * 2,
+        )
         for g in self.ghosts:
-            g_rect = Rect(int(g.pos.x - g.radius), int(g.pos.y - g.radius), g.radius * 2, g.radius * 2)
+            g_rect = Rect(
+                int(g.pos.x - g.radius),
+                int(g.pos.y - g.radius),
+                g.radius * 2,
+                g.radius * 2,
+            )
             if p_rect.colliderect(g_rect):
-                if g.state == 'frightened':
-                    g.set_state('eaten')
+                if g.state == "frightened":
+                    g.set_state("eaten")
                     self.score += 200
-                elif g.state == 'eaten':
+                elif g.state == "eaten":
                     # abaikan (ghost menuju home)
                     pass
                 else:
                     # Pacman mati
                     self.lives -= 1
-                    self.state = 'dead'
+                    self.state = "dead"
                     if self.lives < 0:
-                        self.state = 'gameover'
+                        self.state = "gameover"
                     else:
                         self.reset_after_death()
                     return
 
         # Jika ghost yang 'eaten' sampai home, kembali normal
         for g in self.ghosts:
-            if g.state == 'eaten' and g.at_tile_center():
+            if g.state == "eaten" and g.at_tile_center():
                 if pixel_to_grid(g.pos) == g.home:
-                    g.set_state('normal')
+                    g.set_state("normal")
 
         # Menang jika semua pelet + power habis
         if not self.maze.pellets and not self.maze.power:
@@ -464,7 +504,9 @@ class Game:
         self.screen.fill(SCREEN_BG)
         flick = self.power_timer > 0 and (int(pygame.time.get_ticks() / 200) % 2 == 0)
         # Maze dan item
-        maze_surface = pygame.Surface((self.maze.w * TILE_SIZE, self.maze.h * TILE_SIZE))
+        maze_surface = pygame.Surface(
+            (self.maze.w * TILE_SIZE, self.maze.h * TILE_SIZE)
+        )
         maze_surface.set_colorkey((0, 0, 0))
         self.maze.draw(maze_surface, flicker=flick)
         self.screen.blit(maze_surface, (0, 0))
@@ -475,17 +517,25 @@ class Game:
         # UI Bar
         ui_rect = Rect(0, self.maze.h * TILE_SIZE, self.width, 40)
         pygame.draw.rect(self.screen, (10, 10, 10), ui_rect)
-        text = self.font.render(f"Score: {self.score}   Lives: {max(self.lives, 0)}   Level: {self.level}", True, TEXT_COLOR)
+        text = self.font.render(
+            f"Score: {self.score}   Lives: {max(self.lives, 0)}   Level: {self.level}",
+            True,
+            TEXT_COLOR,
+        )
         self.screen.blit(text, (10, self.maze.h * TILE_SIZE + 10))
 
-        if self.state == 'gameover':
-            msg = self.font.render("GAME OVER - Tekan SPACE/ENTER untuk restart", True, (255, 80, 80))
-            self.screen.blit(msg, (self.width//2 - msg.get_width()//2, self.height//2 - 10))
+        if self.state == "gameover":
+            msg = self.font.render(
+                "GAME OVER - Tekan SPACE/ENTER untuk restart", True, (255, 80, 80)
+            )
+            self.screen.blit(
+                msg, (self.width // 2 - msg.get_width() // 2, self.height // 2 - 10)
+            )
 
         pygame.display.flip()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         Game().run()
     except KeyboardInterrupt:
